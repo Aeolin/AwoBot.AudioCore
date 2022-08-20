@@ -17,9 +17,14 @@ namespace AwoBot.AudioCore.Download
     public long BytesDownloaded { get; private set; }
     public long BytesTotal { get; private set; }
 
-    private IStoredTrack _target;
+    private StoredTrack _target;
     private readonly List<ProgressCompletionSource> _progressStates = new List<ProgressCompletionSource>();
     
+
+    public DownloadState(ITrack track)
+    {
+
+    }
 
     public Task WaitForProgressAsync(long progress, int? timeout = null)
     {

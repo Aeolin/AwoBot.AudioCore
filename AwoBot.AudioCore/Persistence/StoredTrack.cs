@@ -1,30 +1,31 @@
-﻿using System;
+﻿using AwoBot.AudioCore.Tracks;
+using AwosFramework.Factories;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AwoBot.AudioCore.Persistence.StoredTracks
+namespace AwoBot.AudioCore.Persistence
 {
-  public class LocalStoredTrack : IStoredTrack
+  public class StoredTrack
   {
     public string SourceId { get; init; }
     public string TrackId { get; init; }
     public string FilePath { get; init; }
 
-    public LocalStoredTrack()
+    public StoredTrack()
     {
 
     }
 
-    public LocalStoredTrack(string sourceId, string trackId, string filePath)
+    internal StoredTrack(ITrack track, string filePath)
     {
-      SourceId=sourceId;
-      TrackId=trackId;
+      SourceId=track.Source.Id;
+      TrackId=track.Id;
       FilePath=filePath;
     }
-
 
     public Stream OpenRead()
     {
