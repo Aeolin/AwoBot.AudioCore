@@ -12,23 +12,19 @@ namespace AwoBot.AudioCore.Persistence
 {
   public class StoredTrackFactory
   {
-    private StoredTrackConfig _config;
-    private ITrackStore _storage;
+    private ITrackStorage _storage;
 
-    public StoredTrackFactory(StoredTrackConfig config, ITrackStore storage)
+    public StoredTrackFactory(ITrackStorage storage)
     {
-      _config=config;
-      _storage=storage;
+      _storage = storage;
     }
 
-    public async Task<StoredTrack> GetStoredTrackAsync(ITrack track)
+
+    public async Task<IStoredTrack> GetStoredTrackAsync(ITrack track)
     {
       var stored = await _storage.FindTrackAsync(track.Id, track.Source.Id);
       if (stored == null)
-      {
-        stored = new StoredTrack(track, Path.Combine(_config.LocalPath, track.Source.Id, $"{track.Id}.{track.AudioContainerType}"));
-        await _storage.AddTrackAsync(stored);
-      }
+        stored = await _storage.GetOrCreateTrackAsync(track);
 
       return stored;
     }

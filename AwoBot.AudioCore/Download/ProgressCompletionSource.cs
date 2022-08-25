@@ -13,7 +13,7 @@ namespace AwoBot.AudioCore.Download
     private Timer _timer;
     private long _progress;
     public Task Task => _tcs.Task;
-    public bool Completered => _tcs.Task.IsCompleted;
+    public bool Completed => _tcs.Task.IsCompleted;
 
     public ProgressCompletionSource(long progress, int? timeout = 5000)
     {
@@ -27,7 +27,7 @@ namespace AwoBot.AudioCore.Download
       _tcs.SetException(new TimeoutException("Timed out"));
     }
 
-    public void NotifyProgress(long progress, long max)
+    public void NotifyProgress(long progress)
     {
       if (progress > _progress)
         _tcs.SetResult();

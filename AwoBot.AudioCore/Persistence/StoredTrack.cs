@@ -11,9 +11,10 @@ namespace AwoBot.AudioCore.Persistence
 {
   public class StoredTrack
   {
-    public string SourceId { get; init; }
-    public string TrackId { get; init; }
-    public string FilePath { get; init; }
+    public string SourceId { get; private set; }
+    public string TrackId { get; private set; }
+    public string FilePath { get; private set; }
+    public bool RequiresDownload { get; private set; }
 
     public StoredTrack()
     {
@@ -22,9 +23,9 @@ namespace AwoBot.AudioCore.Persistence
 
     internal StoredTrack(ITrack track, string filePath)
     {
-      SourceId=track.Source.Id;
-      TrackId=track.Id;
-      FilePath=filePath;
+      SourceId = track.Source.Id;
+      TrackId = track.Id;
+      FilePath = filePath;
     }
 
     public Stream OpenRead()
@@ -34,7 +35,8 @@ namespace AwoBot.AudioCore.Persistence
 
     public Stream OpenWrite()
     {
-      return File.Open(FilePath, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Read);
+      RequiresDownload = true;
+      return File.Open(FilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
     }
   }
 }
