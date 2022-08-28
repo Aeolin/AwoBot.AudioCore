@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,12 +22,14 @@ namespace AwoBot.AudioCore.Download
     public long? BytesTotal { get; private set; }
     public Task<int> CurrentReadTask { get; private set; }
     public int Priority { get; set; } = 1;
+    public Exception Exception { get; private set; }
+    public double? ProgressPercentage => BytesTotal.HasValue ? BytesDownloaded / ((double)BytesTotal.Value) * 100 : null;
 
     private CancellationTokenSource _cancellationToken;
-    private IStoredTrack _target;
     private byte[] _downloadBuffer;
     private Stream _targetStream;
     private Stream _sourceStream;
+    private HttpClient _httpClient;
 
     private readonly List<ProgressCompletionSource> _progressStates = new List<ProgressCompletionSource>();
 
@@ -54,16 +58,17 @@ namespace AwoBot.AudioCore.Download
           _targetStream.Write(_downloadBuffer, 0, len);
           BytesDownloaded += len;
           updateProgressWaiters();
-          OnDownloadProgress?.Invoke(Source, BytesDownloaded, BytesTotal.Value);
+          OnDownloadProgress?.Invoke(Source, BytesDownloaded, BytesTotal ?? -1);
           CurrentReadTask = _sourceStream.ReadAsync(_downloadBuffer, 0, _downloadBuffer.Length, _cancellationToken.Token);
         }
       }
       else if (CurrentReadTask?.IsFaulted == true)
       {
+        Exception = CurrentReadTask.Exception;
         State = State.Errored;
         Dispose();
         return;
-      }    
+      }
     }
 
     private void updateProgressWaiters()
@@ -77,7 +82,7 @@ namespace AwoBot.AudioCore.Download
       if (BytesTotal.HasValue == false)
         throw new InvalidOperationException($"Call {nameof(StartDownload)} first");
 
-      var source = new ProgressCompletionSource(Math.Min(progress, BytesTotal.Value), timeout);
+      var source = new ProgressCompletionSource(Math.Min(progress, BytesTotal ?? long.MaxValue), timeout);
       _progressStates.Add(source);
       return source.Task;
     }
@@ -87,8 +92,7 @@ namespace AwoBot.AudioCore.Download
       if (State != State.Started)
         throw new InvalidOperationException($"Call {nameof(InitializeAsync)} first");
 
-      _target = track;
-
+      Target = track;
       _targetStream = track.OpenWrite();
       _downloadBuffer = new byte[buffeSize];
       CurrentReadTask = _sourceStream.ReadAsync(_downloadBuffer, 0, _downloadBuffer.Length, _cancellationToken.Token);
@@ -100,8 +104,22 @@ namespace AwoBot.AudioCore.Download
       if (State != State.Initialized)
         throw new InvalidOperationException("Can't initialize a download state again");
 
-      if (await Source.TryOpenStreamAsync(out _sourceStream, out var length) == false)
+      var (url, length) = await Source.GetUrlAsync();
+      if (url == null)
         return false;
+
+      try
+      {
+        _httpClient = new HttpClient();
+        _sourceStream = await _httpClient.GetStreamAsync(url);
+      }
+      catch (Exception ex)
+      {
+        Exception = ex;
+        State = State.Errored;
+        Dispose();
+        return false;
+      }
 
       BytesTotal = length;
       State = State.Started;
@@ -116,9 +134,14 @@ namespace AwoBot.AudioCore.Download
 
     public void Dispose()
     {
-      _targetStream.Flush();
-      _targetStream.Dispose();
-      _sourceStream.Dispose();
+      _progressStates.ForEach(x => x.Cancel());
+      _progressStates.Clear();
+      _targetStream?.Flush();
+      _targetStream?.Dispose();
+      _targetStream = null;
+      _sourceStream?.Dispose();
+      _sourceStream = null;
+      _httpClient?.Dispose();
       _cancellationToken.Dispose();
     }
   }

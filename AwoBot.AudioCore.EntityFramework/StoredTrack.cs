@@ -7,6 +7,10 @@ namespace AwoBot.AudioCore.EntityFramework
 {
   public class StoredTrack : IStoredTrack
   {
+    public StoredTrack()
+    {
+
+    }
 
     public StoredTrack(ITrack track, string storagePath)
     {
@@ -15,6 +19,7 @@ namespace AwoBot.AudioCore.EntityFramework
       var parentFolder = Path.Combine(storagePath, ReplaceInvalidChars(track.Source.Id));
       Directory.CreateDirectory(parentFolder);
       this.FilePath = Path.Combine(parentFolder, $"{ReplaceInvalidChars(track.Id)}.{track.AudioContainerType}");
+      this.RequiresDownload = true;
     }
 
     private static string ReplaceInvalidChars(string filename)
@@ -32,7 +37,7 @@ namespace AwoBot.AudioCore.EntityFramework
 
     public Stream OpenRead()
     {
-      return File.Open(FilePath, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+      return File.Open(FilePath, FileMode.OpenOrCreate, FileAccess.Read, FileShare.ReadWrite);
     }
 
     public Stream OpenWrite()

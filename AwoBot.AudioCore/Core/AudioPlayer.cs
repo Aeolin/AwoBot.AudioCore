@@ -35,20 +35,22 @@ namespace AwoBot.AudioCore.Core
     private Stream _discordPCMStream;
     private FFOptions _ffmpegOptions;
     private Thread _playerThread;
-    public bool Paused { get; private set; }
 
-    public AudioPlayer(FFOptions _ffOptions, ILoggerFactory factory, IPlaylist playlist, DownloadManager downloadManager, IAudioClientFactory audioFactory, IVoiceChannel voiceChannel, DiscordSocketClient client)
+    // Semaphores for thread safety
+    private SemaphoreSlim _playingSemaphore = new SemaphoreSlim(1);
+    private SemaphoreSlim _pausingSemaphore = new SemaphoreSlim(1);
+    private SemaphoreSlim _stoppingSemaphore = new SemaphoreSlim(1);
+    public AudioPlayerState State { get; private set; }
+
+    public AudioPlayer(FFOptions _ffOptions, ILoggerFactory factory, DownloadManager downloadManager, IAudioClientFactory audioFactory, DiscordSocketClient client)
     {
       _ffmpegOptions = _ffOptions;
       _logger = factory.CreateLogger<AudioPlayer>();
-      _playlist = playlist;
       _downloadManager = downloadManager;
       _audioFactory = audioFactory;
-      _voiceChannel = voiceChannel;
       _client = client;
       _cancelCurrentTrack = new CancellationTokenSource();
       _songAddedTrigger = new ManualResetEvent(false);
-      _playlist.OnTrackAdded += _playlist_OnTrackAdded;
     }
 
     private async void _playlist_OnTrackAdded(ITrack track)
@@ -57,6 +59,23 @@ namespace AwoBot.AudioCore.Core
         await _downloadManager.QueueForDownloadAsync(track);
     }
 
+    public async Task SetPlaylistAsync(IPlaylist playlist)
+    {
+      if (playlist == null)
+        throw new ArgumentNullException(nameof(playlist));
+
+      if (_playlist != null)
+       _playlist.OnTrackAdded -= _playlist_OnTrackAdded;
+
+
+      _playlist = playlist;
+      _playlist.OnTrackAdded += _playlist_OnTrackAdded;
+      if (_playlist.CurrentTrack != null)
+        await _downloadManager.QueueForDownloadAsync(_playlist.CurrentTrack);
+
+      if (_playlist.NextTrack != null)
+        await _downloadManager.QueueForDownloadAsync(_playlist.NextTrack);
+    }
 
     private async Task<bool> ensureAudioClientCreatedAsync()
     {
@@ -76,15 +95,40 @@ namespace AwoBot.AudioCore.Core
       return true;
     }
 
+    public void SetVoiceChannel(IVoiceChannel channel)
+    {
+      _voiceChannel = channel;
+    }
+
     public async Task<bool> PlayAsync()
     {
-      if (Paused)
+      try
       {
-        if (await ensureAudioClientCreatedAsync() == false)
-          return false;
+        _running = true;
+        _playingSemaphore.Wait();
+        if (State != AudioPlayerState.Playing)
+        {
+          if (await ensureAudioClientCreatedAsync() == false)
+            return false;
 
-        Paused = false;
-        _unpauseTrigger.Set();
+          if (_playerThread == null)
+          {
+            _playerThread = new Thread(playerThreadWorker);
+            _playerThread.Start();
+          }
+
+          State = AudioPlayerState.Playing;
+          _unpauseTrigger?.Set();
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error starting player");
+        return false;
+      }
+      finally
+      {
+        _playingSemaphore.Release();
       }
 
       return true;
@@ -92,33 +136,48 @@ namespace AwoBot.AudioCore.Core
 
     public void Pause()
     {
-      if (Paused == false)
+      _pausingSemaphore.Wait();
+      if (State == AudioPlayerState.Playing)
       {
-        Paused = true;
         _unpauseTrigger = new ManualResetEvent(false);
+        State = AudioPlayerState.Paused;
         _cancelCurrentTrack.Cancel();
       }
+      _pausingSemaphore.Release();
     }
 
     public void Stop()
     {
-      if (_playerThread != null)
+      try
       {
-        _running = false;
-        _cancelCurrentTrack.Cancel();
-        _songAddedTrigger.Set();
-        if (_unpauseTrigger != null)
-          _unpauseTrigger.Set();
-
-        if (_playerThread.Join(5000) == false)
+        _stoppingSemaphore.Wait();
+        if (_playerThread != null && State != AudioPlayerState.Stopped)
         {
-          _logger.LogError("Can't stop player thread");
-          if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            _playerThread.Abort();
-          else
-            _logger.LogCritical("Fuck");
-        }
+          _running = false;
+          _cancelCurrentTrack.Cancel();
+          _songAddedTrigger.Set();
+          if (_unpauseTrigger != null)
+            _unpauseTrigger.Set();
 
+          if (_playerThread.Join(5000) == false)
+            _logger.LogError("Can't stop player thread");
+
+
+          _audioClient.Dispose();
+          _discordPCMStream.Dispose();
+          _audioClient = null;
+          _discordPCMStream = null;
+          _playerThread = null;
+          State = AudioPlayerState.Stopped;
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, $"Error stopping player");
+      }
+      finally
+      {
+        _stoppingSemaphore.Release();
       }
     }
 
@@ -129,19 +188,21 @@ namespace AwoBot.AudioCore.Core
 
     private async void playerThreadWorker()
     {
-      await ensureAudioClientCreatedAsync();
+      if (await ensureAudioClientCreatedAsync() == false)
+        return;
+
       while (_running)
       {
         if (_unpauseTrigger != null)
         {
-          await _unpauseTrigger.WaitOneAsync();
+          _unpauseTrigger.WaitOne();
           _unpauseTrigger.Dispose();
           _unpauseTrigger = null;
         }
 
         if (_playlist.CurrentTrack == null)
         {
-          await _songAddedTrigger.WaitOneAsync(20000);
+          _songAddedTrigger.WaitOne(20000);  
           continue;
         }
 
@@ -163,7 +224,6 @@ namespace AwoBot.AudioCore.Core
           {
             options.WithAudioSamplingRate(48000);
             options.ForceFormat("s16le");
-            options.WithCustomArgument("-ac 2 -af \"volume=0.4\"");
           })
           .CancellableThrough(_cancelCurrentTrack.Token)
           .NotifyOnProgress(onProgress);
@@ -183,16 +243,15 @@ namespace AwoBot.AudioCore.Core
         }
         finally
         {
-          if (Paused == false)
+          if (State == AudioPlayerState.Playing)
           {
-            Progress = null; // save progress only when paused
+            Progress = null;
             _playlist.Next();
           }
 
           stream.Dispose();
           stream = null;
         }
-
       }
     }
   }

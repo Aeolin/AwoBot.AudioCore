@@ -1,0 +1,50 @@
+﻿{
+  "access": {
+    "database": "Data Source=X:\\Data\\Workspaces\\Awo\\AwoBot.AudioCore\\AwoBot.AudioCore.TestBot\\bin\\Debug\\net6.0\\tracks.db",
+    "discord": {
+      "type": "Bot",
+      "token": "NzE1MTY4MTY4NzYyNjcxMTE1.Xs5SQg.zAPozX_-HuYzAjPedwOW8GfAkXQ"
+    }
+  },
+  "logging": {
+    "LogLevel": {
+      "Default": "Trace",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "bot": {
+    "enable-console-out": true,
+    "migrate-on-start": true,
+    "reconnect-delay": "0:0:30",
+    "name": "AudioTestBitch",
+    "status": "conducting tests",
+    "colors": {
+      "success": "#65EB34",
+      "error": "#FF0000",
+      "loading": "#ebc634"
+    },
+    "modules": {
+      "interaction-module": {
+        "enabled": true,
+        "interactions": {
+          "test-interaction": {
+            "enabled": true
+          }
+        }
+      },
+      "command-module": {
+        "enabled": true,
+        "prefix": {
+          "main": "audio",
+          "prefix1": "-"
+        },
+        "commands": {
+          "audio-command": {
+            "enabled": true
+          }
+        }
+      }
+    }
+  }
+}

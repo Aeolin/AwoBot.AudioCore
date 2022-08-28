@@ -91,8 +91,7 @@ namespace AwoBot.AudioCore.Download
             var index = Task.WaitAny(_states.Select(x => x.CurrentReadTask).ToArray());
             state = states[index];
             state.UpdateDownloadProcess();
-            _logger.LogDebug($"Download Progress [{state.Source}]: {Bytes.Format(state.BytesDownloaded, "0.00")}/{Bytes.Format(state.BytesTotal.Value, "0.00")} ({((double)state.BytesDownloaded)/state.BytesTotal.Value:0.00}%)");
-
+           
             switch (state.State)
             {
               case State.Downloaded:
@@ -115,7 +114,7 @@ namespace AwoBot.AudioCore.Download
                 break;
 
               case State.Downloading:
-                _logger.LogDebug($"[Progress] Track {state.Source.Name}: {state.BytesDownloaded}b/{state.BytesTotal}b ({(((double)state.BytesDownloaded)/state.BytesTotal.Value * 100):0.00})%");
+                _logger.LogDebug($"[Progress] Track {state.Source.Name}: {Bytes.Format(state.BytesDownloaded, "0.00")} / {(state.BytesTotal.HasValue ? Bytes.Format(state.BytesTotal.Value, "0.00") : "???")} ({state.ProgressPercentage?.ToString("0.00") ?? "???"})%");
                 break;
             }
           }
@@ -134,7 +133,8 @@ namespace AwoBot.AudioCore.Download
         else
         {
           _logger.LogDebug("Waiting for queued downloads...");
-          await _stateAddedTrigger.WaitOneAsync(5000);
+          _stateAddedTrigger.WaitOne(5000);
+          _stateAddedTrigger.Reset();
         }
       }
 

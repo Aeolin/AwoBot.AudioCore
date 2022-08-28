@@ -27,6 +27,12 @@ namespace AwoBot.AudioCore.Download
       _tcs.SetException(new TimeoutException("Timed out"));
     }
 
+    public void Cancel()
+    {
+      if (_tcs.Task.IsCompleted == false)
+        _tcs.SetCanceled();
+    }
+
     public void NotifyProgress(long progress)
     {
       if (progress > _progress)

@@ -27,7 +27,7 @@ namespace AwoBot.AudioCore.Utils
       {
         var localTcs = (TaskCompletionSource)state;
         if (timedOut)
-          localTcs.TrySetCanceled();
+          localTcs.TrySetResult();
         else
           localTcs.TrySetResult();
       }, tcs, timeout, executeOnlyOnce: true);

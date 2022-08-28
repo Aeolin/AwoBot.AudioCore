@@ -3,6 +3,7 @@ using AwoBot.AudioCore.Tracks;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace AwoBot.AudioCore.EntityFramework
     private StoredTrackConfig _config;
     public DbSet<StoredTrack> StoredTracks { get; set; }
 
-    public StoredTrackContext(StoredTrackConfig config)
+    public StoredTrackContext(StoredTrackConfig config, DbContextOptions<StoredTrackContext> contextOptions) : base(contextOptions)
     {
       _config = config;
     }
@@ -24,11 +25,6 @@ namespace AwoBot.AudioCore.EntityFramework
     {
       var value = await StoredTracks.FindAsync(id, sourceId);
       return value;
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-      optionsBuilder.UseSqlServer();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -44,6 +40,12 @@ namespace AwoBot.AudioCore.EntityFramework
       {
         value = new StoredTrack(track, _config.LocalPath);
         await StoredTracks.AddAsync(value);
+        await SaveChangesAsync();
+      }
+
+      if(value.RequiresDownload == false && File.Exists(value.FilePath) == false)
+      {
+        value.RequiresDownload = true;
         await SaveChangesAsync();
       }
 

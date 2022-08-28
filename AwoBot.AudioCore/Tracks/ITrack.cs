@@ -10,12 +10,13 @@ namespace AwoBot.AudioCore.Tracks
   public interface ITrack
   {
     public string Name { get; }
+    public string Author { get; }
     public string ThumbnailUrl { get; }
-    public TimeSpan Duration { get; }
+    public TimeSpan? Duration { get; }
     public ITrackProvider Source { get; }
     public string Id { get; }
     public string AudioContainerType { get; }
-    public Task<bool> TryOpenStreamAsync(out Stream stream, out long length);
+    public Task<(Uri uri, long? length)> GetUrlAsync();
   
   }
 }

@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AwoBot.AudioCore", "AwoBot.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwoBot.AudioCore.EntityFramework", "AwoBot.AudioCore.EntityFramework\AwoBot.AudioCore.EntityFramework.csproj", "{32051126-C6D1-4C0E-A7D8-E6FA82F778EA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwoBot.AudioCore.Youtube", "AwoBot.AudioCore.Youtube\AwoBot.AudioCore.Youtube.csproj", "{1B174CBC-32B2-4BE0-87FB-B65AD395E3C1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AwoBot.AudioCore.TestBot", "AwoBot.AudioCore.TestBot\AwoBot.AudioCore.TestBot.csproj", "{A2D1B320-1D48-4CCE-9124-A77CE2179386}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{32051126-C6D1-4C0E-A7D8-E6FA82F778EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{32051126-C6D1-4C0E-A7D8-E6FA82F778EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{32051126-C6D1-4C0E-A7D8-E6FA82F778EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B174CBC-32B2-4BE0-87FB-B65AD395E3C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B174CBC-32B2-4BE0-87FB-B65AD395E3C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B174CBC-32B2-4BE0-87FB-B65AD395E3C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B174CBC-32B2-4BE0-87FB-B65AD395E3C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2D1B320-1D48-4CCE-9124-A77CE2179386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2D1B320-1D48-4CCE-9124-A77CE2179386}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2D1B320-1D48-4CCE-9124-A77CE2179386}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2D1B320-1D48-4CCE-9124-A77CE2179386}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
