@@ -1,9 +1,9 @@
 ﻿{
   "access": {
-    "database": "Data Source=X:\\Data\\Workspaces\\Awo\\AwoBot.AudioCore\\AwoBot.AudioCore.TestBot\\bin\\Debug\\net6.0\\tracks.db",
+    "database": "Data Source=tracks.db",
     "discord": {
       "type": "Bot",
-      "token": "NzE1MTY4MTY4NzYyNjcxMTE1.Xs5SQg.zAPozX_-HuYzAjPedwOW8GfAkXQ"
+      "token": "<token>"
     }
   },
   "logging": {
