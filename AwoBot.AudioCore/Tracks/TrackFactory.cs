@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace AwoBot.AudioCore.Tracks
 {
-  public class TrackFactory : AbstractFactoryBase<IAsyncEnumerable<ITrack>, string, ITrackProvider>
+  public class TrackFactory : AbstractFactoryBase<IAsyncEnumerable<ITrack>, string, ITrackProvider>, ITrackFactory
   {
     public TrackFactory(bool autoDiscover = true, IServiceProvider provider = null) : base(autoDiscover, provider)
     {

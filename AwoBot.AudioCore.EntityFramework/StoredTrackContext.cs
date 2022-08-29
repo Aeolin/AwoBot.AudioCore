@@ -20,7 +20,6 @@ namespace AwoBot.AudioCore.EntityFramework
       _config = config;
     }
 
-
     public async Task<IStoredTrack> FindTrackAsync(string id, string sourceId)
     {
       var value = await StoredTracks.FindAsync(id, sourceId);

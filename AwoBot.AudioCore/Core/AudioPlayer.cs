@@ -10,18 +10,20 @@ using FFMpegCore.Pipes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AwoBot.AudioCore.Core
 {
-  public class AudioPlayer
+  public class AudioPlayer : IAudioPlayer
   {
-    private ILogger _logger;
-    private IPlaylist _playlist;
+    private static readonly Regex ProgressRegex = new Regex(@"time=(\d\d:\d\d:\d\d.\d\d?)", RegexOptions.Compiled);
+    public IPlaylist Playlist { get; private set; }
     private DownloadManager _downloadManager;
     private IAudioClientFactory _audioFactory;
     private IAudioClient _audioClient;
@@ -40,6 +42,7 @@ namespace AwoBot.AudioCore.Core
     private SemaphoreSlim _playingSemaphore = new SemaphoreSlim(1);
     private SemaphoreSlim _pausingSemaphore = new SemaphoreSlim(1);
     private SemaphoreSlim _stoppingSemaphore = new SemaphoreSlim(1);
+    private ILogger _logger;
     public AudioPlayerState State { get; private set; }
 
     public AudioPlayer(FFOptions _ffOptions, ILoggerFactory factory, DownloadManager downloadManager, IAudioClientFactory audioFactory, DiscordSocketClient client)
@@ -55,8 +58,10 @@ namespace AwoBot.AudioCore.Core
 
     private async void _playlist_OnTrackAdded(ITrack track)
     {
-      if (_playlist.CurrentTrack == null ||_playlist.NextTrack == null)
+      if (Playlist.CurrentTrack == null || Playlist.NextTrack == null)
         await _downloadManager.QueueForDownloadAsync(track);
+
+      _songAddedTrigger.Set();
     }
 
     public async Task SetPlaylistAsync(IPlaylist playlist)
@@ -64,17 +69,20 @@ namespace AwoBot.AudioCore.Core
       if (playlist == null)
         throw new ArgumentNullException(nameof(playlist));
 
-      if (_playlist != null)
-       _playlist.OnTrackAdded -= _playlist_OnTrackAdded;
+      if (Playlist != null)
+        Playlist.OnTrackAdded -= _playlist_OnTrackAdded;
 
+      Playlist = playlist;
+      Playlist.OnTrackAdded += _playlist_OnTrackAdded;
+      if (Playlist.CurrentTrack != null)
+        await _downloadManager.QueueForDownloadAsync(Playlist.CurrentTrack);
 
-      _playlist = playlist;
-      _playlist.OnTrackAdded += _playlist_OnTrackAdded;
-      if (_playlist.CurrentTrack != null)
-        await _downloadManager.QueueForDownloadAsync(_playlist.CurrentTrack);
+      if (Playlist.NextTrack != null)
+        await _downloadManager.QueueForDownloadAsync(Playlist.NextTrack);
 
-      if (_playlist.NextTrack != null)
-        await _downloadManager.QueueForDownloadAsync(_playlist.NextTrack);
+      if (Playlist.Count > 0)
+        _songAddedTrigger.Set();
+
     }
 
     private async Task<bool> ensureAudioClientCreatedAsync()
@@ -200,18 +208,18 @@ namespace AwoBot.AudioCore.Core
           _unpauseTrigger = null;
         }
 
-        if (_playlist.CurrentTrack == null)
+        if (Playlist.CurrentTrack == null)
         {
-          _songAddedTrigger.WaitOne(20000);  
+          _songAddedTrigger.WaitOne(20000);
           continue;
         }
 
-        var stream = await _downloadManager.OpenStreamAsync(_playlist.CurrentTrack);
+        var stream = await _downloadManager.OpenStreamAsync(Playlist.CurrentTrack);
         if (stream == null)
         {
           await Task.Delay(5000);
-          _playlist.Next();
-          _logger.LogError($"Couldn't open stream for track {_playlist.CurrentTrack}, skipping it...");
+          Playlist.Next();
+          _logger.LogError($"Couldn't open stream for track {Playlist.CurrentTrack}, skipping it...");
           continue;
         }
 
@@ -225,8 +233,16 @@ namespace AwoBot.AudioCore.Core
             options.WithAudioSamplingRate(48000);
             options.ForceFormat("s16le");
           })
-          .CancellableThrough(_cancelCurrentTrack.Token)
-          .NotifyOnProgress(onProgress);
+          // hacky way to fix an issue in ffmpeg.core since the progress data is sent to stderror and not stdout
+          // see https://github.com/rosenbjerg/FFMpegCore/issues/331
+          .NotifyOnError(x => { 
+            var match = ProgressRegex.Match(x);
+            if (!match.Success) return;
+
+            var processed = TimeSpan.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            onProgress(processed);
+          })
+          .CancellableThrough(_cancelCurrentTrack.Token);
 
         try
         {
@@ -239,14 +255,16 @@ namespace AwoBot.AudioCore.Core
         }
         catch (Exception ex)
         {
-          _logger.LogError(ex, $"Error playing track {_playlist.CurrentTrack}, skipping to next...");
+          _logger.LogError(ex, $"Error playing track {Playlist.CurrentTrack}, skipping to next...");
         }
         finally
         {
           if (State == AudioPlayerState.Playing)
           {
             Progress = null;
-            _playlist.Next();
+            Playlist.Next();
+            if (Playlist.NextTrack != null)
+              await _downloadManager.QueueForDownloadAsync(Playlist.NextTrack);
           }
 
           stream.Dispose();

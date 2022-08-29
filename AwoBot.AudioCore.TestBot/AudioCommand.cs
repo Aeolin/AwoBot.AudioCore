@@ -14,18 +14,20 @@ namespace AwoBot.AudioCore.TestBot
   public class AudioCommand : ModuleBase
   {
     private IDependencyContainer _dependencyContainer;
-    private TrackFactory _trackFactory;
+    private ITrackFactory _trackFactory;
+    private IAudioPlayerFactory _audioPlayerFactory;
 
-    public AudioCommand(IDependencyContainer dependencyContainer, TrackFactory trackFactory)
+    public AudioCommand(IDependencyContainer dependencyContainer, ITrackFactory trackFactory, IAudioPlayerFactory audioPlayerFactory)
     {
       _dependencyContainer=dependencyContainer;
       _trackFactory=trackFactory;
+      _audioPlayerFactory=audioPlayerFactory;
     }
 
-    [Command("play")]
+    [Command("play", RunMode = RunMode.Async)]
     [Alias("p")]
-    [RequireContext(ContextType.Guild)]
-    public async Task Play(string url)
+    [RequireContext(ContextType.Guild)] 
+    public async Task Play([Remainder]string url)
     {
       var user = Context.User as IGuildUser;
       if(user.VoiceChannel != null)
@@ -33,13 +35,9 @@ namespace AwoBot.AudioCore.TestBot
         var tracks = await _trackFactory.SearchOrGetTracksAsync(url);
         if(tracks.Count() > 0)
         {
-          var playlist = new BasicPlaylist();
+          var player = await _audioPlayerFactory.GetAudioPlayerAsync(user);
           foreach (var track in tracks)
-            playlist.Add(track);
-
-          var player = _dependencyContainer.GetInstance<AudioPlayer>();
-          player.SetVoiceChannel(user.VoiceChannel);
-          await player.SetPlaylistAsync(playlist);
+            player.Playlist.Add(track);
           await player.PlayAsync();
         }
       }

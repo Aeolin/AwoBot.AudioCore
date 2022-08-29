@@ -36,10 +36,10 @@ namespace AwoBot.AudioCore.Download
 
     private async Task<IStoredTrack> queueForDownloadAsync(ITrack track)
     {
+      await _queueLock.WaitAsync(); // prevent the same track from being downloaded twice
       var stored = await _trackStore.GetOrCreateTrackAsync(track);
       if (stored.RequiresDownload)
       {
-        await _queueLock.WaitAsync(); // prevent the same track from being downloaded twice
         if (_states.Any(x => x.Source.Equals(track)) == false)
         {
           var dlState = new DownloadState(track);
@@ -48,16 +48,12 @@ namespace AwoBot.AudioCore.Download
 
           dlState.StartDownload(stored);
           _states.Add(dlState);
-          _queueLock.Release();
           _stateAddedTrigger.Set();
           await dlState.WaitForProgressAsync(Bytes.Mega(0.25));
         }
-        else
-        {
-          _queueLock.Release();
-        }
       }
 
+      _queueLock.Release();
       return stored;
     }
 
@@ -91,7 +87,7 @@ namespace AwoBot.AudioCore.Download
             var index = Task.WaitAny(_states.Select(x => x.CurrentReadTask).ToArray());
             state = states[index];
             state.UpdateDownloadProcess();
-           
+
             switch (state.State)
             {
               case State.Downloaded:

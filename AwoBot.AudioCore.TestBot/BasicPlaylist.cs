@@ -32,8 +32,8 @@ namespace AwoBot.AudioCore.TestBot
 
     public int Index { get; private set; }
 
-    public ITrack NextTrack => _queue.Skip(Index).FirstOrDefault();
-    public ITrack CurrentTrack => _queue.Skip(Index - 1).FirstOrDefault();
+    public ITrack NextTrack => _queue.Skip(Index + 1).FirstOrDefault();
+    public ITrack CurrentTrack => _queue.Skip(Index).FirstOrDefault();
 
     public int Count => _queue.Count;
 
@@ -46,9 +46,9 @@ namespace AwoBot.AudioCore.TestBot
 
     public void Add(ITrack item)
     {
+      OnTrackAdded?.Invoke(item);
       _original.Add(item);
       _queue.Add(item);
-      OnTrackAdded?.Invoke(item);
     }
 
     public void Clear()
@@ -79,9 +79,9 @@ namespace AwoBot.AudioCore.TestBot
 
     public void Insert(int index, ITrack item)
     {
+      OnTrackAdded?.Invoke(item);
       _original.Insert(index, item);
       _queue.Insert(index, item);
-      OnTrackAdded?.Invoke(item);
     }
 
     public ITrack Next()

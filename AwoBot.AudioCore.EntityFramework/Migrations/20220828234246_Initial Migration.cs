@@ -4,7 +4,7 @@
 
 namespace AwoBot.AudioCore.EntityFramework.Migrations
 {
-    public partial class Initial : Migration
+    public partial class InitialMigration : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -12,10 +12,10 @@ namespace AwoBot.AudioCore.EntityFramework.Migrations
                 name: "StoredTracks",
                 columns: table => new
                 {
-                    SourceId = table.Column<string>(type: "TEXT", nullable: false),
-                    TrackId = table.Column<string>(type: "TEXT", nullable: false),
-                    FilePath = table.Column<string>(type: "TEXT", nullable: true),
-                    RequiresDownload = table.Column<bool>(type: "INTEGER", nullable: false)
+                    SourceId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    TrackId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequiresDownload = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
