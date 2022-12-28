@@ -52,7 +52,6 @@ namespace AwoBot.AudioCore.Core
       _downloadManager = downloadManager;
       _audioFactory = audioFactory;
       _client = client;
-      _cancelCurrentTrack = new CancellationTokenSource();
       _songAddedTrigger = new ManualResetEvent(false);
     }
 
@@ -149,7 +148,7 @@ namespace AwoBot.AudioCore.Core
       {
         _unpauseTrigger = new ManualResetEvent(false);
         State = AudioPlayerState.Paused;
-        _cancelCurrentTrack.Cancel();
+        _cancelCurrentTrack?.Cancel();
       }
       _pausingSemaphore.Release();
     }
@@ -162,7 +161,7 @@ namespace AwoBot.AudioCore.Core
         if (_playerThread != null && State != AudioPlayerState.Stopped)
         {
           _running = false;
-          _cancelCurrentTrack.Cancel();
+          _cancelCurrentTrack?.Cancel();
           _songAddedTrigger.Set();
           if (_unpauseTrigger != null)
             _unpauseTrigger.Set();
@@ -223,6 +222,7 @@ namespace AwoBot.AudioCore.Core
           continue;
         }
 
+        _cancelCurrentTrack = new CancellationTokenSource();
         var ffmpeg = FFMpegArguments
           .FromPipeInput(new StreamPipeSource(stream), options =>
           {
@@ -237,7 +237,8 @@ namespace AwoBot.AudioCore.Core
           // see https://github.com/rosenbjerg/FFMpegCore/issues/331
           .NotifyOnError(x => { 
             var match = ProgressRegex.Match(x);
-            if (!match.Success) return;
+            if (!match.Success) 
+              return;
 
             var processed = TimeSpan.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
             onProgress(processed);
@@ -248,7 +249,7 @@ namespace AwoBot.AudioCore.Core
         {
           await ffmpeg.ProcessAsynchronously(true, _ffmpegOptions);
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
           _logger.LogDebug($"Player was cancelled (expected)");
           continue;

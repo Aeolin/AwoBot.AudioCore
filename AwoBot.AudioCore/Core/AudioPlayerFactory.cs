@@ -22,7 +22,7 @@ namespace AwoBot.AudioCore.Core
       _playlistFactory=playlistFactory;
     }
 
-    public async Task<IAudioPlayer> GetAudioPlayerAsync(IGuildUser user)
+    public async Task<IAudioPlayer> GetOrCreateAudioPlayerAsync(IGuildUser user)
     {
       if (user.VoiceChannel == null)
         return null;
@@ -44,6 +44,13 @@ namespace AwoBot.AudioCore.Core
       }
 
       return audioPlayer;
+    }
+
+    public bool TryGetExistingAudioPlayer(IGuildUser user, out IAudioPlayer player)
+    {
+      var res = _audioPlayers.TryGetValue(user.VoiceChannel, out var audioPlayer);
+      player = audioPlayer;
+      return res;
     }
   }
 }

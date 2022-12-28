@@ -5,6 +5,7 @@ namespace AwoBot.AudioCore.Core
 {
   public interface IAudioPlayerFactory
   {
-    Task<IAudioPlayer> GetAudioPlayerAsync(IGuildUser user);
+    Task<IAudioPlayer> GetOrCreateAudioPlayerAsync(IGuildUser user);
+    bool TryGetExistingAudioPlayer(IGuildUser user, out IAudioPlayer player);
   }
 }

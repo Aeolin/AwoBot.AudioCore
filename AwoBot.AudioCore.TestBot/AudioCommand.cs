@@ -35,10 +35,46 @@ namespace AwoBot.AudioCore.TestBot
         var tracks = await _trackFactory.SearchOrGetTracksAsync(url);
         if(tracks.Count() > 0)
         {
-          var player = await _audioPlayerFactory.GetAudioPlayerAsync(user);
+          var player = await _audioPlayerFactory.GetOrCreateAudioPlayerAsync(user);
           foreach (var track in tracks)
             player.Playlist.Add(track);
           await player.PlayAsync();
+        }
+      }
+    }
+
+    [RequireContext(ContextType.Guild)]
+    [Command("pause", RunMode = RunMode.Async)]
+    public async Task Pause()
+    {
+      if(_audioPlayerFactory.TryGetExistingAudioPlayer(Context.User as IGuildUser, out var player))
+      {
+        if(player.State != AudioPlayerState.Paused)
+        {
+          player.Pause();
+          await ReplyAsync("Paused");
+        }
+        else
+        {
+          await ReplyAsync("Already Paused");
+        }
+      }
+    }
+
+    [RequireContext(ContextType.Guild)]
+    [Command("resume", RunMode = RunMode.Async)]
+    public async Task Resume()
+    {
+      if (_audioPlayerFactory.TryGetExistingAudioPlayer(Context.User as IGuildUser, out var player))
+      {
+        if (player.State != AudioPlayerState.Playing)
+        {
+          await player.PlayAsync();
+          await ReplyAsync("Playing");
+        }
+        else
+        {
+          await ReplyAsync("Already playing");
         }
       }
     }
