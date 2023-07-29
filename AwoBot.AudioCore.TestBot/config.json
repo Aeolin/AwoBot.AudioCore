@@ -1,12 +1,13 @@
 ﻿{
   "access": {
-    "database": "Data Source=tracks.db",
+    "database": "TrustServerCertificate=True;server=aeol.in,3307;user id=audio-bot-test;password=pxg%daG3WM4eo7w3g&*M%J#kyxX4Wbpo;initial catalog=audio-bot-test;MultipleActiveResultSets=true",
     "discord": {
       "type": "Bot",
-      "token": "<token>"
+      "token": "NzE1MTY4MTY4NzYyNjcxMTE1.GduEPL.tgicKsDGoKkisGAIZaIrAvEMQMu2YmsTt3Sg7A"
     }
   },
   "logging": {
+    "discord-channel-id": 1009046698775035915,
     "LogLevel": {
       "Default": "Trace",
       "Microsoft": "Warning",

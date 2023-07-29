@@ -9,9 +9,18 @@
     <PackageReference Include="Aeolin.reInject" Version="1.5.3" />
     <PackageReference Include="Aeolin.reInject.PostInjectors.BackgroundWorker" Version="1.5.4.2" />
     <PackageReference Include="Aeolin.ReInject.PostInjectors.EventInjection" Version="1.5.3.1" />
-    <PackageReference Include="Discord.Net" Version="3.7.2" />
-    <PackageReference Include="Discord.Net.WebSocket" Version="3.7.2" />
+    <PackageReference Include="Discord.Net" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.WebSocket" Version="3.9.0" />
     <PackageReference Include="FFMpegCore" Version="4.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libsodium.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="opus.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

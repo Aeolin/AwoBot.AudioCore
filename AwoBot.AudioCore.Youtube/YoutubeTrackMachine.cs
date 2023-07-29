@@ -23,13 +23,13 @@ namespace AwoBot.AudioCore.Youtube
     {
       if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
       {
-        if (uri.Host != "www.youtube.com" || uri.Host != "www.youtu.be")
+        if (uri.Host != "www.youtube.com" && uri.Host != "www.youtu.be")
           return null;
 
         if (uri.Segments.Length < 1)
           return null;
 
-        if ((uri.Segments[0].Equals("playlist") || uri.Segments[0].Equals("watch")) == false)
+        if ((uri.Segments[0].Equals("playlist") == false || uri.Segments[0].Equals("watch")) == false)
           return null;
 
         var queryParameters = uri.Query.Substring(1).Split("&").Select(x => x.Split("=")).ToDictionary(x => x[0], x => x[1]);

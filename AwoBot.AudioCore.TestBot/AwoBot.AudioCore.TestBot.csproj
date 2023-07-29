@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Aeolin.AwoBot" Version="1.5.3" />
+    <PackageReference Include="Aeolin.AwoBot.Logging.Discord" Version="1.0.0" />
     <PackageReference Include="Aeolin.reInject" Version="1.5.3" />
   </ItemGroup>
 

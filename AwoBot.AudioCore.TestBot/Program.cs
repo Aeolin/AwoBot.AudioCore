@@ -7,11 +7,14 @@ using AwoBot.AudioCore.Playlists;
 using AwoBot.AudioCore.TestBot;
 using AwoBot.AudioCore.Tracks;
 using AwoBot.AudioCore.Youtube;
+using AwoBot.Logging.Discord;
+using AwosFramework.Utils;
 using Discord;
 using Discord.WebSocket;
 using FFMpegCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using ReInject;
 using YoutubeExplode;
 
@@ -36,6 +39,7 @@ await BotRunner.Run(bot =>
       BinaryFolder = $"./ffmpeg/{Environment.OSVersion.Platform.ToString().ToLower()}/",
       TemporaryFilesFolder = "./tmp"
     });
+  bot.OnStateChanged +=Bot_OnStateChanged;
 }, dconfig: new DiscordSocketConfig()
 {
   AlwaysDownloadUsers = true,
@@ -45,3 +49,29 @@ await BotRunner.Run(bot =>
   MessageCacheSize = 100,
   LargeThreshold = 250
 });
+
+async void Bot_OnStateChanged(IBot bot, BotState state)
+{
+  switch (state)
+  {
+    case BotState.Connected:
+      var container = bot.Container;
+      var channelId = container.GetInstance<IConfiguration>().GetValue<ulong?>("logging:discord-channel-id", null);
+      if (channelId.HasValue)
+      {
+        var channel = await container.GetInstance<DiscordSocketClient>().GetChannelAsync(channelId.Value) as ITextChannel;
+        if (channel != null)
+        {
+          bot.Container.GetInstance<ILoggerFactory>().AddDiscordChannelLogger(cfg =>
+          {
+            cfg.Channel = channel;
+            cfg.LogLevels.AddRange(Enum.GetValues<LogLevel>());
+            cfg.LoggingPeriod = TimeSpan.FromSeconds(10);
+            cfg.FileUploadPeriod = TimeSpan.FromDays(1);
+            cfg.FirstUploadDate = DateTime.UtcNow.Date.AddDays(1);
+          });
+        }
+      }
+      break;
+  }
+}
